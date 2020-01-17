@@ -3,14 +3,16 @@
   Date          Action
   ----          ------
   2019-11-14    Created
+  2020-01-15    Corrected MAX_ISET and MAX_MSET
+  2020-01-17    Increased number of labels (declarations and usages)
 */
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-#define MAX_ISET 60
-#define MAX_MSET 16
+#define MAX_ISET 61
+#define MAX_MSET 17
 
 int getNumber8(char *s);
 int getNumber16(char *s);
@@ -21,8 +23,8 @@ int main(int argc,char **argv)
 {
   FILE *fsource;                /* source file */
   char iset[64][4];             /* instruction set */
-  char decLabelTable[100][40];  /* table of declared labels */
-  char fndLabelTable[500][40];  /* table of found labels */
+  char decLabelTable[200][40];  /* table of declared labels */
+  char fndLabelTable[800][40];  /* table of found labels */
   int labelValue[100];          /* table of declared label values */
   int fndLabelLoc[500];         /* table of found label locations */ 
   int val;                      /* value of a label */
@@ -260,8 +262,8 @@ int main(int argc,char **argv)
          The priority of the cases is:
          1) Label declaration
          2) RAM data (constant)
-         3) Basic instruction
-         4) Macro
+         3) Macro
+         4) Basic instruction
       */   
 
       if (instrProc==0)
@@ -591,6 +593,8 @@ int main(int argc,char **argv)
   }
   if (compFailed==0)
   {
+    printf("Labels declared: %d\n",dlbl);
+    printf("Uses of labels in instructions: %d\n",flbl);
     eff=100*((float)ubytes/(float)(ubytes+nops));
     printf("%d bytes of code, %d padding NOPs\n",ubytes,nops);
     printf(" => Efficiency = %.1f %% \n",eff);
