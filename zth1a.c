@@ -1,10 +1,17 @@
 /* Cross assembler for the ZTH1 CPU
 
+  WARNING: this version is a prototype. The parsing of the input source file
+           is still very loose, which may lead to errors in the object
+           file. In particular, one should avoid to use in labels 
+           sequences of characters that correspond to menemonics or macros
+           (e.g., @x_complete, @increment_var, etc... shall be banned)
+ 
   Date          Action
   ----          ------
   2019-11-14    Created
   2020-01-15    Corrected MAX_ISET and MAX_MSET
   2020-01-17    Increased number of labels (declarations and usages)
+  2020-01-21    Increased again number of labels (had to use dynamic alloc)
 */
 
 #include <stdio.h>
@@ -21,14 +28,14 @@ int writeFile(char *name,char **obj,char *mem,int b);
 
 int main(int argc,char **argv)
 {
-  FILE *fsource;                /* source file */
-  char iset[64][4];             /* instruction set */
-  char decLabelTable[200][40];  /* table of declared labels */
-  char fndLabelTable[800][40];  /* table of found labels */
-  int labelValue[100];          /* table of declared label values */
-  int fndLabelLoc[500];         /* table of found label locations */ 
-  int val;                      /* value of a label */
-  char *valStr;                 /* value (as string) of a label */
+  FILE *fsource;          /* source file */
+  char iset[64][4];       /* instruction set */
+  char **decLabelTable;   /* table of declared labels */
+  char **fndLabelTable;   /* table of found labels */
+  int *labelValue;        /* table of declared label values */
+  int *fndLabelLoc;       /* table of found label locations */ 
+  int val;                /* value of a label */
+  char *valStr;           /* value (as string) of a label */
   int inString;           /* =1 if character string being read */
   int endLine;            /* =1 if end of line reached */
   int orgDef;             /* =1 if ORG has been defined */
@@ -69,6 +76,35 @@ int main(int argc,char **argv)
     printf("Cannot open file: %s\n",argv[0]);
     exit(0);
   }
+
+
+  decLabelTable=malloc(250*sizeof(char *));
+  if (decLabelTable==NULL) exit(0);
+  for (i=0;i<250;i++)
+  {
+    decLabelTable[i]=malloc(40*sizeof(char));
+    if (decLabelTable[i]==NULL)
+    {
+      printf("No memory left for decLabelTable[%d]\n",i);
+      exit(0);
+    }
+  }
+  labelValue=malloc(250*sizeof(int));
+  if (labelValue==NULL) exit(0);
+
+  fndLabelTable=malloc(900*sizeof(char *));
+  if (fndLabelTable==NULL) exit(0);
+  for (i=0;i<900;i++)
+  {
+    fndLabelTable[i]=malloc(40*sizeof(char)); 
+    if (fndLabelTable[i]==NULL)
+    {
+      printf("No memory left for fndLabelTable[%d]\n",i);
+      exit(0);
+    }
+  }
+  fndLabelLoc=malloc(900*sizeof(int));
+  if (fndLabelLoc==NULL) exit(0);
   
   strcpy(iset[0],"nop");
   strcpy(iset[1],"ldh");
@@ -221,7 +257,7 @@ int main(int argc,char **argv)
 
       /* parse the instruction */
      
-      printf("Parsing: %s\n",instr);
+      printf("%04X : Parsing: %s\n",pc,instr);
       instrProc=0; 
       if (strstr(instr,"org")!=NULL)
       {
@@ -300,7 +336,7 @@ int main(int argc,char **argv)
             labelValue[dlbl]=pc;
           }
           strcpy(decLabelTable[dlbl],instr+1);
-          printf("Label %s declared\n",decLabelTable[dlbl]);
+          printf("Label %s declared (%d th label)\n",decLabelTable[dlbl],dlbl);
           dlbl++;
         }
       }
@@ -600,9 +636,9 @@ int main(int argc,char **argv)
     printf(" => Efficiency = %.1f %% \n",eff);
   }
 
-  writeFile("rom.mif",(char **)objCode,rom,2);
   writeFile("ram_h.mif",(char **)objData,ram,0);
   writeFile("ram_l.mif",(char **)objData,ram,1);
+  writeFile("rom.mif",(char **)objCode,rom,2);
 
   for (i=0;i<8192;i++)
   {
